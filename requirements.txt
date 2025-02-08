@@ -1,0 +1,7 @@
+pandas
+requests
+configparser
+sqlalchemy
+wheel
+pytest
+pytest-mock

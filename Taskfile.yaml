@@ -1,0 +1,50 @@
+version: "3"
+
+tasks:
+  setup:
+    desc: "Install dependencies and set up environment"
+    cmds:
+      - pip install -r requirements.txt
+    silent: false
+
+  build:
+    desc: "Build the package"
+    cmds:
+      - python setup.py sdist bdist_wheel
+    silent: false
+
+  install:
+    desc: "Install the package locally"
+    cmds:
+      - pip install dist/load_csv_to_postgres-1.0.0-py3-none-any.whl
+    silent: false
+
+  run:
+    desc: "Run the CSV to PostgreSQL loader"
+    cmds:
+      - python load_csv_to_postgres/load_csv_to_postgres.py
+    silent: false
+
+  run_orders:
+    desc: "Process order data"
+    cmds:
+      - python customers_order_tables_join/customers_order_tables_join.py  # Second Python script for processing orders
+    silent: false
+
+  run_business:
+    desc: "business data"
+    cmds:
+      - python business_data/business_data.py  # Second Python script for processing orders
+    silent: false 
+
+  test:
+    desc: "Run unit tests"
+    cmds:
+      - pytest tests/ --disable-warnings -v
+    silent: false
+
+  clean:
+    desc: "Clean up build files"
+    cmds:
+      - rm -rf build dist *.egg-info
+    silent: false
