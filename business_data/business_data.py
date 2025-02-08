@@ -1,6 +1,6 @@
 import pandas as pd
 import psycopg2
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
 import configparser
 
 # Step 1: Read configuration from config.ini
@@ -24,20 +24,34 @@ db_connection = psycopg2.connect(
     password=password
 )
 
-# Fetch data from the silver schema's customer_order_data table
-query = "SELECT * FROM silver.customer_order_data"  # Adjust the table name if needed
+# Step 3: Ensure `gold` schema exists before inserting data
+gold_schema = "gold"
+
+with db_connection.cursor() as cursor:
+    cursor.execute(f"SELECT schema_name FROM information_schema.schemata WHERE schema_name = '{gold_schema}';")
+    schema_exists = cursor.fetchone()
+
+    if not schema_exists:
+        print(f"Schema '{gold_schema}' does not exist. Creating schema...")
+        cursor.execute(f"CREATE SCHEMA {gold_schema};")
+        db_connection.commit()
+    else:
+        print(f"Schema '{gold_schema}' already exists.")
+
+# Step 4: Fetch data from `silver.customer_order_data` table
+query = "SELECT * FROM silver.customer_order_data"
 customer_order_data = pd.read_sql(query, db_connection)
 
-# Step 3: Filter the data where Product = 'Laptop'
-filtered_data = customer_order_data[customer_order_data['Product'] == 'Laptop']
+# Step 5: Filter the data where Product = 'Laptop'
+filtered_data = customer_order_data[customer_order_data['product'] == 'Laptop']
 
-# Step 4: Connect to PostgreSQL to store data in the gold schema's business table
+# Step 6: Connect to PostgreSQL using SQLAlchemy for writing data
 engine = create_engine(f'postgresql+psycopg2://{user}:{password}@{host}:{port}/{dbname}')
 
-# Step 5: Store the filtered data into the gold schema's business table
-filtered_data.to_sql('business_data', engine, schema='gold', index=False, if_exists='replace')
+# Step 7: Store the filtered data into `gold.business_data` table
+filtered_data.to_sql('business_data', engine, schema=gold_schema, index=False, if_exists='replace')
 
-# Step 6: Close the database connection
+# Step 8: Close the database connection
 db_connection.close()
 
-print("Filtered data has been successfully stored in the gold.business table!")
+print(f"Filtered data has been successfully stored in '{gold_schema}.business_data' table!")
